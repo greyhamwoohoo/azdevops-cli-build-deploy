@@ -7,11 +7,21 @@
     "doc": "docs"
   },
   "scripts": {
+
+
+    "!ignore": "This does not work because the context is not shared between shells / commands. ",
+
     "with:ps": "SET npm_config_script_shell=powershell; $ErrorActionPreference=\"Stop\"",
-    "assert:context": "if(@(Get-VSTeamProfile -Name \"azdev-cli-build-deploy-repo\").Length -eq 0) { Write-Error \"Use Add-VsTeamProfile to add the profile first.  \" }",
-    "set:context": "Set-VsTeamAccount -Profile azdev-cli-build-deploy-repo",
-    "verify:context": "npm run with:ps; npm run assert:context",
-    "pre-command": "npm run verify:context; npm run set:context; "
+    "assert:azdevaccount": "if(@(Get-VSTeamProfile -Name \"azdev-cli-build-deploy-repo\").Length -eq 0) { Write-Error \"Use Add-VsTeamProfile to add the profile first.  \" }",
+    
+    "verify:azdevaccount": "npm run with:ps; npm run assert:azdevaccount",
+    
+    "set:azdevaccount": "Set-VsTeamAccount -Profile azdev-cli-build-deploy-repo",
+    "pre:command": "npm run verify:azdevaccount; npm run set:azdevaccount; ",
+
+    "queue:build": "$runningBuild = (Add-VSTeamBuild -BuildDefinitionName \"azdev-cli-build\" -ProjectName \"Public-Automation-Examples\"); $runningBuild | ft -Property Definition,BuildNumber,Id,Status,Result",
+    "wait:build": "while($runningBuild.Status -ne \"completed\") { sleep(5); $runningBuild = (Get-VsTeamBuild -Id $runningBuild.Id -ProjectName \"Public-Automation-Examples\"); $runningBuild | ft -Property Definition,BuildNumber,Id,Status,Result; }",
+    "build": "npm run pre:command; npm run queue:build; npm run wait:build"
   },
   "repository": {
     "type": "git",

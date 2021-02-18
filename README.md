@@ -30,15 +30,15 @@ Add-VsTeamProfile -Account YOURVSTSACCOUNT -PersonalAccessToken YOURPAT -Name az
 The profile 'azdev-cli-build-deploy-repo' will be set by all of the npm commands (via Set-VsTeamAccount) to ensure the context is correct before running any PowerShell code. 
 
 ## Design decisions
-I have included *ALL* of the scripts in the packages.json here; it clearly makes more sense to externalize these (or even create a DSL for your company and publish it as an intenral PowerShell Module)
+I have included *ALL* of the scripts in the packages.json here; it clearly makes more sense to externalize these (or even create a DSL for your company and publish it as an internal PowerShell Module)
 
 
 ## Commands
 A list of commands (some of which test the setup):
 
-| Command                  | Description                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------ |
-| npm run verify:context   | Runs some basic scripts to check all is good.                                  |
+| Command                       | Description                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| npm run verify:azdevaccount   | Runs some basic scripts to check all is good.                                  |
 
 
 ### Infrastructure
