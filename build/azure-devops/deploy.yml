@@ -1,0 +1,38 @@
+trigger: none
+pr: none
+
+name: 1.0$(Rev:.r)-$(SourceBranchName)
+
+resources:
+  pipelines:
+  - pipeline: azdev_cli_build
+    source: azdev-cli-build
+    project: Public-Automation-Examples
+    
+stages:
+- stage: Execute
+  displayName: "ExecuteJob"
+  jobs:
+  - job: ExecuteJob
+    displayName: "The ExecuteJob"
+    pool:
+      vmImage: ubuntu-18.04
+
+    steps:
+    - task: DownloadPipelineArtifact@2
+      displayName: "Download Stuff"
+      inputs:
+        
+        source: specific
+        project: $(resources.pipeline.azdev_cli_build.projectID)
+        pipeline: $(resources.pipeline.azdev_cli_build.pipelineName)
+
+        runVersion: specific
+        runId: $(resources.pipeline.azdev_cli_build.runID)
+        
+        artifact: howdi
+        path: $(Pipeline.Workspace)
+
+    - powershell: |
+        Write-Host "The deployment has finished"
+      displayName: "We are done"

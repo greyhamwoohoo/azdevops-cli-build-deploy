@@ -27,7 +27,7 @@ Install-Module vsteam
 Add-VsTeamProfile -Account YOURVSTSACCOUNT -PersonalAccessToken YOURPAT -Name azdev-cli-build-deploy-repo
 ```
 
-The profile 'azdev-cli-build-deploy-repo' will be set by all of the scripts (via Set-VsTeamAccount) to ensure the context is correct before running any scripts. 
+The profile 'azdev-cli-build-deploy-repo' will be set by all of the npm commands (via Set-VsTeamAccount) to ensure the context is correct before running any PowerShell code. 
 
 ## Design decisions
 I have included *ALL* of the scripts in the packages.json here; it clearly makes more sense to externalize these (or even create a DSL for your company and publish it as an intenral PowerShell Module)
@@ -42,10 +42,12 @@ A list of commands (some of which test the setup):
 
 
 ### Infrastructure
-Two example pipelines are included:
+Two example pipelines are included - the npm commands directly refer to them to queue new builds and wait for completion:
 
-1. build.yml (build definition: azdev-cli-build)
-2. deploy.yml (build definition: azdev-cli-deploy)
+| Build File | Azure DevOps Build Definition | Description                                                                |
+| ---------- | ----------------------------- | -------------------------------------------------------------------------- |
+| build.yml  | azdev-cli-build               | A simple build; the scripts wait for completion before scheduling the next | 
+| deploy.yml | azdev-cli-deploy              | A simple deploy (parameterized to deploy to the chosen environment using resources from azdev-cli-build |
 
 In Azure DevOps, there are two Environments set up:
 

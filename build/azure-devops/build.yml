@@ -1,0 +1,27 @@
+trigger: none
+pr: none
+
+name: 1.0$(Rev:.r)-build
+
+stages:
+- stage: BuildStage
+  displayName: "BuildJob"
+  jobs:
+  - job: Build
+    displayName: "The BuildJob mandatory"
+    pool:
+      vmImage: ubuntu-18.04
+
+    steps:
+    - powershell: |
+        Write-Host "Hello"
+      displayName: "Say Hello"
+
+    - powershell: |
+        "Howdi" | Out-File "$($env:BUILD_STAGINGDIRECTORY)/howdi.txt"
+      displayName: "Create output file"
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: $(Build.StagingDirectory)/howdi.txt
+        artifactName: 'howdi'
