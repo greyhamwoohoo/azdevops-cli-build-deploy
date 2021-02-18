@@ -1,0 +1,26 @@
+{
+  "name": "azdev-cli-build-deploy",
+  "version": "1.0.0",
+  "description": "CLI Command Line wrappers",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "with:ps": "SET npm_config_script_shell=powershell; $ErrorActionPreference=\"Stop\"",
+    "assert:context": "if(@(Get-VSTeamProfile -Name \"azdev-cli-build-deploy-repo\").Length -eq 0) { Write-Error \"Use Add-VsTeamProfile to add the profile first.  \" }",
+    "set:context": "Set-VsTeamAccount -Profile azdev-cli-build-deploy-repo",
+    "verify:context": "npm run with:ps; npm run assert:context",
+    "pre-command": "npm run verify:context; npm run set:context; "
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/greyhamwoohoo/azdev-cli-build-deploy.git"
+  },
+  "author": "Greyhamwoohoo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/greyhamwoohoo/azdev-cli-build-deploy/issues"
+  },
+  "homepage": "https://github.com/greyhamwoohoo/azdev-cli-build-deploy#readme"
+}
