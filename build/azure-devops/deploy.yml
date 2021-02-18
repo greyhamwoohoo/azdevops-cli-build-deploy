@@ -1,7 +1,7 @@
 trigger: none
 pr: none
 
-name: 1.0$(Rev:.r)-$(SourceBranchName)
+name: deploy-1.0$(Rev:.r)-$(SourceBranchName)
 
 resources:
   pipelines:

@@ -1,7 +1,7 @@
 trigger: none
 pr: none
 
-name: 1.0$(Rev:.r)-build
+name: build-1.0$(Rev:.r)-$(SourceBranchName)
 
 stages:
 - stage: BuildStage
