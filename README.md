@@ -1,4 +1,4 @@
-# azdev-cli-build-deploy
+# azdevops-cli-build-deploy
 CLI Workflow/POC to build and deploy branches to test environments from the cli. 
 
 ```
