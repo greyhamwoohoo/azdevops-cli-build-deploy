@@ -1,10 +1,12 @@
 Set-StrictMode -Version 3.0
 
 $ErrorActionPreference="Stop"
+# Set to Continue is you want -Verbose added to every call. Useful for troubleshooting. 
 $VerbosePreference="SilentlyContinue"
 
 $env:AzureDevopsProfileName="azdev-cli-build-deploy-repo"
 $env:AzureDevOpsBuildDefinitionName="azdev-cli-build"
+$env:AzureDevOpsDeployDefinitionName="azdev-cli-deploy"
 $env:AzureDevOpsProjectName="Public-Automation-Examples"
 
 <#
@@ -46,6 +48,13 @@ function Test-BadAzureDevopsContext {
             throw "ERROR: You must configure a profile in VsTeam called '$($AzureDevOpsProfileName)'. This is a one-off operation. Enter: Add-VsTeamProfile -Account YOURVSTSACCOUNT -PersonalAccessToken YOURPAT -Name $($AzureDevOpsProfileName). Then call: Get-VsTeamProfile to view your profiles. "
         }
         Write-Verbose "DONE: The VsTeam Profile called $($AzureDevOpsProfileName) exists. "
+
+        Write-Verbose "TRY: To crudely establish the Git branch we are on. "
+        $currentBranch = (git branch --show-current)
+        if(-NOT $currentBranch) {
+            throw "ERROR: The 'git' branch name could not be determined with 'git branch --show-current' (git 2.22+). The branch is required to schedule builds. "
+        }
+        Write-verbose "DONE: The current branch is $($currentBranch)"
     }
 }
 
@@ -64,13 +73,22 @@ function Invoke-Bad {
 
         [Parameter(Mandatory=$false)]
         [System.String]
-        $AzureDevOpsProjectName = $env:AzureDevOpsProjectName           
+        $AzureDevOpsDeployDefinitionName = $env:AzureDevOpsDeployDefinitionName,        
+
+        [Parameter(Mandatory=$false)]
+        [System.String]
+        $AzureDevOpsProjectName = $env:AzureDevOpsProjectName,
+
+        [Parameter(Mandatory=$false)]
+        [System.String]
+        $SourceBranch = (git branch --show-current)
     )
     PROCESS {
 
         Write-Verbose "AzureDevopsProfileName: $($AzureDevopsProfileName)"
         Write-Verbose "AzureDevOpsBuildDefinitionName: $($AzureDevOpsBuildDefinitionName)"
         Write-Verbose "AzureDevOpsProjectName: $($AzureDevOpsProjectName)"
+        Write-Verbose "SourceBranch: $($SourceBranch)"
 
         if(-NOT $AzureDevopsProfileName) {
             throw "ERROR: The parameter 'AzureDevOpsProfileName' must be specified. To be safe: make this the same name as your repo. "
@@ -87,11 +105,21 @@ function Invoke-Bad {
         Write-Verbose "DONE: The VsTeamProfile has been set to $($AzureDevOpsProfileName)"
 
         #
-        # Now queue the build...
+        # I cannot find a way of using Add-VsTeamBuild to queue a Yaml Pipeline that consumes build artifactgs (and accepts parameters)
+        # So I need to use the pipelines/[BUILDDEFINITIONID]/runs API; find the BuildDefinitionId of the Deployment pipeline
         #
-        $runningBuild = (Add-VSTeamBuild -BuildDefinitionName $AzureDevOpsBuildDefinitionName -ProjectName $AzureDevOpsProjectName)
-        Write-Progress -Status $runningBuild.Status -PercentComplete -1 -Activity "Building $($AzureDevOpsBuildDefinitionName)..."
+        $deployBuildDefinition = (Get-VSTeamBuildDefinition -ProjectName $AzureDevOpsProjectName ).Where{ $_.Name -eq $AzureDevOpsDeployDefinitionName }
+        if(-NOT $deployBuildDefinition) {
+            throw "ERROR: There is no Yaml Pipeline called '$($AzureDevOpsDeployDefinitionName)' in the Azure DevOps Project called '$($AzureDevOpsProjectName)'."
+        }
 
+        #
+        # Queue the build...
+        #
+        $runningBuild = (Add-VSTeamBuild -BuildDefinitionName $AzureDevOpsBuildDefinitionName -ProjectName $AzureDevOpsProjectName -SourceBranch $SourceBranch)
+        Write-Output "Build: $($runningBuild.InternalObject._links.web.href)"
+        Write-Progress -Status $runningBuild.Status -PercentComplete -1 -Activity "Building $($AzureDevOpsBuildDefinitionName)..." -CurrentOperation "Build: $($runningBuild.InternalObject._links.web.href)"
+        
         #
         # Poll the build until it is complete
         #
@@ -100,22 +128,68 @@ function Invoke-Bad {
             Start-Sleep 5;
             
             $runningBuild = (Get-VsTeamBuild -Id $runningBuild.Id -ProjectName $AzureDevOpsProjectName); 
-            #Write-Output ($runningBuild | Select-Object -Property DefinitionName,BuildNumber,Id,Status,Result | Format-Table -HideTableHeaders)
-            Write-Progress -Status $runningBuild.Status -PercentComplete -1 -Activity "Building $($AzureDevOpsBuildDefinitionName)..."
+            Write-Progress -Status $runningBuild.Status -PercentComplete -1 -Activity "Building $($AzureDevOpsBuildDefinitionName)..." -CurrentOperation "Build: $($runningBuild.InternalObject._links.web.href)"
         }
-
-        Write-Progress -Status $runningBuild.Result -PercentComplete -1 -Completed -Activity "Building $($AzureDevOpsBuildDefinitionName)..."
-
+        
+        Write-Progress -Status $runningBuild.Result -PercentComplete -1 -Completed -Activity "Building $($AzureDevOpsBuildDefinitionName)..." -CurrentOperation "Build: $($runningBuild.InternalObject._links.web.href)"
+        
         if($runningBuild.Result -ne "succeeded") {
             throw "ERROR: The build $($runningBuild.Id) completed with result $($runningBuild.Result). 'succeeded' was expected. Not scheduling deploy. "
         }
+        
+        #
+        # Queue the deployment...
+        # For this... we need to use the specific version (the buildName) of the build job. 
+        # API Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/run%20pipeline?view=azure-devops-rest-6.0#runresourcesparameters
+        #
+        $bodyRaw = @{
+            "stagesToSkip"=@();
+            "resources"=@{ 
+                "repositories"=@{
+                    "self"=@{
+                        "refName"="refs/heads/$($SourceBranch)"
+                    } 
+                };
+                
+                "pipelines"=@{
+                    "$($AzureDevOpsBuildDefinitionName)"=@{
+                        "version"="$($runningBuild.BuildNumber)"
+                    }
+                } 
+            } 
+        }
+
+        $bodyAsJson = ConvertTo-Json $bodyRaw -Depth 100
+
+        Write-Verbose "Sending the following payload: "
+        Write-Verbose $bodyAsJson
+
+        # When we queue a Pipeline, we get the REST Response for a Pipeline Run. 
+        # However: the response.id property can be used for querying the Build API
+        $runningDeploy = Invoke-VSTeamRequest -Method POST -area "pipelines/$($deployBuildDefinition.Id)" -resource "runs"  -version "6.0-preview.1" -ProjectName $AzureDevOpsProjectName -UseProjectId -body $bodyAsJson
+        Write-Verbose $runningDeploy
+
+        $runningDeploy = (Get-VsTeamBuild -Id $runningDeploy.Id -ProjectName $AzureDevOpsProjectName); 
+        Write-Output "Deploy: $($runningDeploy.InternalObject._links.web.href)"
+        Write-Progress -Status $runningDeploy.Status -PercentComplete -1 -Activity "Deploying $($AzureDevOpsDeployDefinitionName)..." -CurrentOperation "Deploying: $($runningDeploy.InternalObject._links.web.href)"
 
         #
-        # Now: schedule a deploy; and pass in a parameter
+        # Poll the deploy until the deploy is complete
         #
+        while($runningDeploy.Status -ne "completed") 
+        { 
+            Start-Sleep 5;
+            
+            $runningDeploy = (Get-VsTeamBuild -Id $runningDeploy.Id -ProjectName $AzureDevOpsProjectName); 
+            Write-Progress -Status $runningDeploy.Status -PercentComplete -1 -Activity "Deploying $($AzureDevOpsDeployDefinitionName)..." -CurrentOperation "Deploy: $($runningDeploy.InternalObject._links.web.href)"
+        }        
 
+        Write-Progress -Status $runningDeploy.Result -PercentComplete -1 -Completed -Activity "Deploying $($AzureDevOpsDeployDefinitionName)..." -CurrentOperation "Deploy: $($runningDeploy.InternalObject._links.web.href)"
+        
+        if($runningDeploy.Result -ne "succeeded") {
+            throw "ERROR: The deployment $($runningDeploy.Id) completed with result $($runningDeploy.Result). 'succeeded' was expected. "
+        }        
     }
-
 }
 
 Test-BadAzureDevopsContext
