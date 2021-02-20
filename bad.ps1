@@ -1,13 +1,20 @@
 Set-StrictMode -Version 3.0
 
+<#
+# For debugging PowerShell without NPM: uncomment this block
+
 $ErrorActionPreference="Stop"
 # Set to Continue is you want -Verbose added to every call. Useful for troubleshooting. 
-$VerbosePreference="SilentlyContinue"
+$VerbosePreference="Continue"
 
 $env:AzureDevopsProfileName="azdev-cli-build-deploy-repo"
 $env:AzureDevOpsBuildDefinitionName="azdev-cli-build"
 $env:AzureDevOpsDeployDefinitionName="azdev-cli-deploy"
 $env:AzureDevOpsProjectName="Public-Automation-Examples"
+
+# NOTE: This is only used for the Pipelines/Runs. When the API is promoted, this will likely need set to 6.1 or something. 
+$env:AzureDevOpsApiverson="6.0-preview.1"
+#> 
 
 <#
 .SYNOPSIS
@@ -81,23 +88,35 @@ function Invoke-Bad {
 
         [Parameter(Mandatory=$false)]
         [System.String]
+        $AzureDevOpsApiVersion = $env:AzureDevOpsApiVersion,
+
+        [Parameter(Mandatory=$false)]
+        [System.String]
         $SourceBranch = (git branch --show-current)
     )
     PROCESS {
 
         Write-Verbose "AzureDevopsProfileName: $($AzureDevopsProfileName)"
         Write-Verbose "AzureDevOpsBuildDefinitionName: $($AzureDevOpsBuildDefinitionName)"
+        Write-Verbose "AzureDevOpsDeployDefinitionName: $($AzureDevOpsDeployDefinitionName)"
         Write-Verbose "AzureDevOpsProjectName: $($AzureDevOpsProjectName)"
+        Write-Verbose "AzureDevOpsApiVerson: $($AzureDevOpsApiVersion)"
         Write-Verbose "SourceBranch: $($SourceBranch)"
 
         if(-NOT $AzureDevopsProfileName) {
             throw "ERROR: The parameter 'AzureDevOpsProfileName' must be specified. To be safe: make this the same name as your repo. "
         }
         if(-NOT $AzureDevOpsBuildDefinitionName) {
-            throw "ERROR: The parameter 'AzureDevOpsBuildDefinitionName' must be specified. This is the name of the build pipeline in Azure DevOps. "
+            throw "ERROR: The parameter 'AzureDevOpsBuildDefinitionName' must be specified. This is the name of the Yaml build pipeline in Azure DevOps. "
         }        
+        if(-NOT $AzureDevOpsDeployDefinitionName) {
+            throw "ERROR: The parameter 'AzureDevOpsDeployDefinitionName' must be specified. This is the name of the Yaml deploy pipeline in Azure DevOps. "
+        }    
+        if(-NOT $AzureDevOpsApiVersion) {
+            throw "ERROR: The parameter 'AzureDevOpsApiVersion' must be specified. This is the API Version required for the Runs API. "
+        }                   
         if(-NOT $AzureDevOpsProjectName) {
-            throw "ERROR: The parameter 'AzureDevOpsProjectName' must be specified. This is the new of the Azure DevOps Project. "
+            throw "ERROR: The parameter 'AzureDevOpsProjectName' must be specified. This is the name of the Azure DevOps Project. "
         }          
         
         Write-Verbose "TRY: To set the VsTeamProfile to $($AzureDevOpsProfileName)"
@@ -159,6 +178,7 @@ function Invoke-Bad {
             } 
         }
 
+        # Default Depth is too small - so the likes of 'self' above will be serialized as the TypeName (HashTable). Force deep. 
         $bodyAsJson = ConvertTo-Json $bodyRaw -Depth 100
 
         Write-Verbose "Sending the following payload: "
@@ -192,4 +212,3 @@ function Invoke-Bad {
     }
 }
 
-Test-BadAzureDevopsContext

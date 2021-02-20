@@ -1,14 +1,16 @@
 # azdev-cli-build-deploy
-CLI Workflow to build and deploy branches to test environments from the cli. ie: npm run deploy:cli-uat1
+CLI Workflow to build and deploy branches to test environments from the cli. ie: npm run bad
+
+Only tested with YAML build and release pipelines. 
 
 ## Usage
 From Windows Terminal, and on the branch you are working, do something like this:
 
 ```bash
-npm run bad:cli-uat1
+npm run bad
 ```
 
-That will run a build pipeline; wait for completion; and then deploy to the cli-uat1 environment. 
+That will run a build pipeline; wait for completion; and then run the deploy pipeline; wait for completion. 
 
 ### Why?
 We often need adhoc deployments of our current branch to different environments; almost 'fire and forget'. 
@@ -30,15 +32,17 @@ Add-VsTeamProfile -Account YOURVSTSACCOUNT -PersonalAccessToken YOURPAT -Name az
 The profile 'azdev-cli-build-deploy-repo' will be set by all of the npm commands (via Set-VsTeamAccount) to ensure the context is correct before running any PowerShell code. 
 
 ## Design decisions
-I have included *ALL* of the scripts in the packages.json here; it clearly makes more sense to externalize these (or even create a DSL for your company and publish it as an internal PowerShell Module)
+The PowerShell logic is in the bad.ps1 file. 
 
+I have wrapped up the calls with npm to test its viability; my feeling is it makes sense to turn bad.ps1 into a DSL for your use case and invoke it directly. 
 
 ## Commands
 A list of commands (some of which test the setup):
 
 | Command                       | Description                                                                    |
 | ----------------------------- | ------------------------------------------------------------------------------ |
-| npm run verify:azdevaccount   | Runs some basic scripts to check all is good.                                  |
+| npm run test-bad              | Verifies everything is configured            |
+| npm run bad                   | Build a YAML Pipeline; then Deploy using its resources |
 
 
 ### Infrastructure
@@ -49,6 +53,7 @@ Two example pipelines are included - the npm commands directly refer to them to 
 | build.yml  | azdev-cli-build               | A simple build; the scripts wait for completion before scheduling the next | 
 | deploy.yml | azdev-cli-deploy              | A simple deploy (parameterized to deploy to the chosen environment using resources from azdev-cli-build |
 
+# TODO: 
 In Azure DevOps, there are two Environments set up:
 
 1. cli-uat1
