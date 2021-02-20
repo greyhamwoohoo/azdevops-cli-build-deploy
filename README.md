@@ -5,7 +5,7 @@ CLI Workflow/POC to build and deploy branches to test environments from the cli.
 npm run bad:uat2
 ```
 
-...will run a build pipeline, wait for completion, and then run another pipeline to consume its resources and deploy to an environment:
+...will queue and wait for a build pipeline to complete; then queue and wait for a deployment pipeline to consume the build resources and deploy to an environment:
 
 ![Pic](docs/deploy-uat2-build.PNG "Deploying")
 
@@ -20,13 +20,13 @@ npm run bad:uat1
 npm run bad:uat2
 ```
 
-That will run a build pipeline; wait for completion; and then run the deploy pipeline (possibly targetting an environment); and wait for completion. 
+The npm commands just delegate the calls to PowerShell. 
 
 ### Why?
-We often need adhoc deployments of our current branch to different environments on demand. 
+For the use case where we need adhoc deployments of our current branch to different environments. 
 
 ## Setup
-This is intended to run on top of PowerShell (or Posh Core) and uses the VsTeam PowerShell Module. 
+This is intended to run on top of PowerShell (or Posh Core) and uses the VsTeam PowerShell Module. A Personal Access Token is required to access the REST API.  
 
 To set up a Least Privelege PAT:
 
@@ -44,7 +44,7 @@ The profile 'azdev-cli-build-deploy-repo' will be set by all of the npm commands
 ## Design decisions
 The PowerShell logic is in the bad.ps1 file. 
 
-I have wrapped up the calls with npm to test its viability; my feeling is it makes sense to turn bad.ps1 into a DSL for your use case and invoke it directly. 
+I have wrapped up the calls with npm to show it all hanging together; my feeling is it makes sense to turn bad.ps1 into a DSL for your use case and forego npm completely. 
 
 ## Commands
 A list of npm commands:

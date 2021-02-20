@@ -1,3 +1,13 @@
+#
+# Module: bad.ps1 (Build and Deploy)
+#
+# Author: Greyhamwoohoo
+#
+# Purpose: Run a Yaml build pipeline (Azure DevOps)
+#          Then run a Yaml release pipeline to consume the Build artifacts
+#          (optionally deploy to an environment)
+#
+
 Set-StrictMode -Version 3.0
 
 <#
@@ -66,6 +76,31 @@ function Test-BadAzureDevopsContext {
     }
 }
 
+<#
+.SYNOPSIS
+Run the Build and Deploy pipelines
+
+.PARAMETER AzureDevOpsProfileName
+Name of the profile that has been configured by the VsTeam Module.
+
+.PARAMETER AzureDevOpsBuildDefinitionName
+Name of the Build Pipeline in Azure DevOps (YAML)
+
+.PARAMETER AzureDevOpsDeployDefinitionName
+Name of the Deploy Pipeline in Azure DevOps (YAML)
+
+.PARAMETER AzureDevOpsProjectName
+Project Name in Azure DevOps. The pipelines must reside in this Team Project. 
+
+.PARAMETER AzureDevOpsApiVersion
+API Version to use for starting the Deployment Pipeline. Use at least 6.0-preview.1 so that parameters (such as environments and resources) can be passed to the Deployment pipeline. 
+
+.PARAMETER AzureDevOpsEnvironment
+Optional environment to target. Can be null. If specified: will be passed as targetEnvironment (see deploy-env.yml for more information)
+
+.PARAMETER SourceBranch
+The branch name to build and deploy. 
+#>
 function Invoke-Bad {
 
     [CmdletBinding()]
