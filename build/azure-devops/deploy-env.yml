@@ -1,0 +1,52 @@
+trigger: none
+pr: none
+
+name: deploy-env-1.0$(Rev:.r)-$(SourceBranchName)
+
+resources:
+  pipelines:
+  - pipeline: azdev_cli_build
+    source: azdev-cli-build
+    project: Public-Automation-Examples
+
+parameters:
+- name: targetEnvironment
+  displayName: "Target Environment"
+  type: string
+  default: none
+  values:
+  - none
+  - azdev-cli-uat1
+  - azdev-cli-uat2
+
+stages:
+- stage: Execute
+  displayName: "ExecuteJob"
+  jobs:
+  - deployment: DeploymentJob
+    displayName: "The DeploymentJob"
+    pool:
+      vmImage: ubuntu-18.04
+    environment: ${{ parameters.targetEnvironment }}
+    strategy:
+        runOnce:
+          deploy:
+
+            steps:
+            - task: DownloadPipelineArtifact@2
+              displayName: "Download Stuff"
+              inputs:
+                
+                source: specific
+                project: $(resources.pipeline.azdev_cli_build.projectID)
+                pipeline: $(resources.pipeline.azdev_cli_build.pipelineName)
+
+                runVersion: specific
+                runId: $(resources.pipeline.azdev_cli_build.runID)
+                
+                artifact: howdi
+                path: $(Pipeline.Workspace)
+
+            - powershell: |
+                Write-Host "The deployment has finished"
+              displayName: "We are done"
