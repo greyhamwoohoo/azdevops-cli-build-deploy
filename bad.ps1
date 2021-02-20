@@ -11,6 +11,7 @@ $env:AzureDevopsProfileName="azdev-cli-build-deploy-repo"
 $env:AzureDevOpsBuildDefinitionName="azdev-cli-build"
 $env:AzureDevOpsDeployDefinitionName="azdev-cli-deploy"
 $env:AzureDevOpsProjectName="Public-Automation-Examples"
+$env:AzureDevOpsEnvironment="azdev-cli-uat1"
 
 # NOTE: This is only used for the Pipelines/Runs. When the API is promoted, this will likely need set to 6.1 or something. 
 $env:AzureDevOpsApiverson="6.0-preview.1"
@@ -92,6 +93,10 @@ function Invoke-Bad {
 
         [Parameter(Mandatory=$false)]
         [System.String]
+        $AzureDevOpsEnvironment = $env:AzureDevOpsEnvironment,
+
+        [Parameter(Mandatory=$false)]
+        [System.String]
         $SourceBranch = (git branch --show-current)
     )
     PROCESS {
@@ -101,6 +106,7 @@ function Invoke-Bad {
         Write-Verbose "AzureDevOpsDeployDefinitionName: $($AzureDevOpsDeployDefinitionName)"
         Write-Verbose "AzureDevOpsProjectName: $($AzureDevOpsProjectName)"
         Write-Verbose "AzureDevOpsApiVerson: $($AzureDevOpsApiVersion)"
+        Write-Verbose "AzureDevOpsEnvironment: $($AzureDevOpsEnvironment)"
         Write-Verbose "SourceBranch: $($SourceBranch)"
 
         if(-NOT $AzureDevopsProfileName) {
@@ -178,6 +184,12 @@ function Invoke-Bad {
             } 
         }
 
+        if($AzureDevOpsEnvironment) {
+            $bodyRaw["templateParameters"] = @{
+                "targetEnvironment"="$($AzureDevOpsEnvironment)"
+            }
+        }
+
         # Default Depth is too small - so the likes of 'self' above will be serialized as the TypeName (HashTable). Force deep. 
         $bodyAsJson = ConvertTo-Json $bodyRaw -Depth 100
 
@@ -211,4 +223,3 @@ function Invoke-Bad {
         }        
     }
 }
-
