@@ -7,7 +7,7 @@
 #          Then run a Yaml release pipeline to consume the Build artifacts
 #          (optionally deploy to an environment)
 #
-#          This code works; but isn't tidy. Better to compose a DSL via a PowerShell Module for your use case and hide the complexity. 
+#          This code works; but isn't tidy. Better to compose a DSL via a PowerShell Module for your use case and hide this. 
 #
 
 Set-StrictMode -Version 3.0
