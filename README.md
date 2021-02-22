@@ -44,7 +44,7 @@ The profile 'azdev-cli-build-deploy-repo' will be set by all of the npm commands
 ## Design decisions
 The PowerShell logic is in the bad.ps1 file. 
 
-I have wrapped up the calls with npm to show it all hanging together; my feeling is it makes sense to turn bad.ps1 into a DSL / PowerShell Model for your use case and forego npm completely. 
+I have wrapped up the calls with npm to show it all hanging together; my feeling is it makes sense to turn bad.ps1 into a DSL / PowerShell Module for your use case and forego npm completely. 
 
 ## Commands
 A list of npm commands:
