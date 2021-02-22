@@ -1,11 +1,13 @@
 #
 # Module: bad.ps1 (Build and Deploy)
 #
-# Author: Greyhamwoohoo
+# Author: Greyhamwoohoo (reference: https://github.com/greyhamwoohoo/azdevops-cli-build-deploy)
 #
 # Purpose: Run a Yaml build pipeline (Azure DevOps)
 #          Then run a Yaml release pipeline to consume the Build artifacts
 #          (optionally deploy to an environment)
+#
+#          This code works; but isn't tidy. Better to compose a DSL via a PowerShell Module for your use case and hide the complexity. 
 #
 
 Set-StrictMode -Version 3.0
@@ -24,7 +26,7 @@ $env:AzureDevOpsProjectName="Public-Automation-Examples"
 $env:AzureDevOpsEnvironment="azdev-cli-uat1"
 
 # NOTE: This is only used for the Pipelines/Runs. When the API is promoted, this will likely need set to 6.1 or something. 
-$env:AzureDevOpsApiverson="6.0-preview.1"
+$env:AzureDevOpsApiversion="6.0-preview.1"
 #> 
 
 <#
@@ -140,7 +142,7 @@ function Invoke-Bad {
         Write-Verbose "AzureDevOpsBuildDefinitionName: $($AzureDevOpsBuildDefinitionName)"
         Write-Verbose "AzureDevOpsDeployDefinitionName: $($AzureDevOpsDeployDefinitionName)"
         Write-Verbose "AzureDevOpsProjectName: $($AzureDevOpsProjectName)"
-        Write-Verbose "AzureDevOpsApiVerson: $($AzureDevOpsApiVersion)"
+        Write-Verbose "AzureDevOpsApiversion: $($AzureDevOpsApiVersion)"
         Write-Verbose "AzureDevOpsEnvironment: $($AzureDevOpsEnvironment)"
         Write-Verbose "SourceBranch: $($SourceBranch)"
 
@@ -233,7 +235,7 @@ function Invoke-Bad {
 
         # When we queue a Pipeline, we get the REST Response for a Pipeline Run. 
         # However: the response.id property can be used for querying the Build API
-        $runningDeploy = Invoke-VSTeamRequest -Method POST -area "pipelines/$($deployBuildDefinition.Id)" -resource "runs"  -version "6.0-preview.1" -ProjectName $AzureDevOpsProjectName -UseProjectId -body $bodyAsJson
+        $runningDeploy = Invoke-VSTeamRequest -Method POST -area "pipelines/$($deployBuildDefinition.Id)" -resource "runs"  -version $AzureDevOpsApiversion -ProjectName $AzureDevOpsProjectName -UseProjectId -body $bodyAsJson
         Write-Verbose $runningDeploy
 
         $runningDeploy = (Get-VsTeamBuild -Id $runningDeploy.Id -ProjectName $AzureDevOpsProjectName); 
